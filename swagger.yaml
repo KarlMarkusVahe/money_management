@@ -1,0 +1,5 @@
+openapi: 3.0.2
+info:
+  title: ITA21
+  version: 1.0.0
+  description: Demonstration API
