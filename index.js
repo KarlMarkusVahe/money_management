@@ -5,9 +5,12 @@ const yamlJs = require('yamljs');
 const swaggerDocument = yamlJs.load('./swagger.yaml');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcrypt");
+const fs = require('fs');
 
 const accounts = [];
 let sessions = [];
+let expenses = []; // Define the expenses variable
+let incomes = []; // Define the incomes variable
 
 require('dotenv').config();
 
@@ -143,6 +146,41 @@ app.delete('/sessions', authorizeRequest, (req, res) => {
     res.status(204).send();
 
 })
+
+// Function to read expenses from file
+function readExpensesFromFile() {
+    try {
+        const fileData = fs.readFileSync('expenses.json', 'utf8');
+        return JSON.parse(fileData);
+    } catch (error) {
+        console.error('Failed to read expenses:', error);
+        return [];
+    }
+}
+
+// Function to read incomes from file
+function readIncomesFromFile() {
+    try {
+        const fileData = fs.readFileSync('incomes.json', 'utf8');
+        return JSON.parse(fileData);
+    } catch (error) {
+        console.error('Failed to read incomes:', error);
+        return [];
+    }
+}
+
+// Load expenses from file initially
+expenses = readExpensesFromFile();
+// Load incomes from file initially
+incomes = readIncomesFromFile();
+
+app.get('/expenses', (req, res) => {
+    res.json(expenses);
+});
+
+app.get('/incomes', (req, res) => {
+    res.json(incomes);
+});
 
 app.listen(port, () => {
     console.log(`App running. Docs at http://localhost:${port}/docs`);

@@ -27,6 +27,23 @@
         Sign Out
     </button>
 
+    <div v-if="sessionId">
+
+        <h2>Expenses</h2>
+        <ul>
+            <li v-for="expense in expenses" :key="expense.id">
+                {{ expense.name }}: ${{ expense.amount }}
+            </li>
+        </ul>
+
+        <h2>Incomes</h2>
+        <ul>
+            <li v-for="income in incomes" :key="income.id">
+                {{ income.name }}: ${{ income.amount }}
+            </li>
+        </ul>
+    </div>
+
     <!-- Sign Up Modal -->
     <div class="modal fade" id="signUpModal" tabindex="-1" aria-labelledby="signUpModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -102,11 +119,19 @@
                 signInEmail: null,
                 signInPassword: null,
                 sessionId: null,
+                expenseName: '',
+                expenseAmount: 0,
+                expenses: [],
+                incomeName: '',
+                incomeAmount: 0,
+                incomes: [],
             };
         },
         mounted() {
             if (localStorage.getItem('sessionId')) {
                 this.sessionId = localStorage.getItem('sessionId');
+                this.loadExpenses();
+                this.loadIncomes();
             }
         },
         methods: {
@@ -150,6 +175,8 @@
                         localStorage.setItem('sessionId', response.id);
                         this.sessionId = response.id;
                         this.modalHandler.hide();
+                        this.loadExpenses();
+                        this.loadIncomes();
                     });
             },
             signOut() {
@@ -157,12 +184,26 @@
                     .then(() => {
                         localStorage.removeItem('sessionId');
                         this.sessionId = null;
+                        this.expenses = [];
+                        this.incomes = [];
                     });
             },
             showModal(modalId) {
                 this.modalHandler = new bootstrap.Modal(document.getElementById(modalId));
                 this.modalHandler.show(modalId);
-            }
+            },
+            loadExpenses() {
+                this.send('GET', '/expenses')
+                    .then(response => {
+                        this.expenses = response;
+                    });
+            },
+            loadIncomes() {
+                this.send('GET', '/incomes')
+                    .then(response => {
+                        this.incomes = response;
+                    })
+            },
         },
     }).mount('#app');
 </script>
