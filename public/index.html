@@ -47,6 +47,9 @@
         <ul>
             <li v-for="expense in expenses" :key="expense.id">
                 {{ expense.name }}: ${{ expense.amount }}
+                <button type="button" class="btn btn-danger btn-sm" @click="deleteExpense(expense.id)">
+                    Delete
+                </button>
                 <button type="button" class="btn btn-secondary btn-sm" @click="showModal('editExpenseModal', expense)">
                     Edit
                 </button>
@@ -72,6 +75,9 @@
         <ul>
             <li v-for="income in incomes" :key="income.id">
                 {{ income.name }}: ${{ income.amount }}
+                <button type="button" class="btn btn-danger btn-sm" @click="deleteIncome(income.id)">
+                    Delete
+                </button>
                 <button type="button" class="btn btn-secondary btn-sm" @click="showModal('editIncomeModal', income)">
                     Edit
                 </button>
@@ -367,6 +373,26 @@
                         alert(`Error: ${error.response.data.message}`);
                     });
             },
+            deleteExpense(expenseId) {
+                axios.delete(`/expenses/${expenseId}`)
+                    .then(() => {
+                        // Remove the deleted expense from the local array
+                        this.expenses = this.expenses.filter(expense => expense.id !== expenseId);
+                    })
+                    .catch(error => {
+                        console.error('Failed to delete expense:', error);
+                    });
+            },
+            deleteIncome(incomeId) {
+                axios.delete(`/incomes/${incomeId}`)
+                    .then(() => {
+                        // Remove the deleted income from the local array
+                        this.incomes = this.incomes.filter(income => income.id !== incomeId);
+                    })
+                    .catch(error => {
+                        console.error('Failed to delete income:', error);
+                    });
+            }
         },
     }).mount('#app');
 </script>

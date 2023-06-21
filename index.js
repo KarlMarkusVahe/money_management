@@ -283,6 +283,44 @@ app.put('/incomes/:id', (req, res) => {
     res.json(income);
 });
 
+app.delete('/expenses/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Find the index of the expense in the array by ID
+    const index = expenses.findIndex((expense) => expense.id === id);
+
+    if (index === -1) {
+        return res.status(404).send('Expense not found');
+    }
+
+    // Remove the expense from the array
+    expenses.splice(index, 1);
+
+    // Save the updated expenses to the file
+    saveExpensesToFile();
+
+    res.status(204).send();
+});
+
+app.delete('/incomes/:id', (req, res) => {
+    const { id } = req.params;
+
+    // Find the index of the income in the array by ID
+    const index = incomes.findIndex((income) => income.id === id);
+
+    if (index === -1) {
+        return res.status(404).send('Income not found');
+    }
+
+    // Remove the income from the array
+    incomes.splice(index, 1);
+
+    // Save the updated incomes to the file
+    saveIncomesToFile();
+
+    res.status(204).send();
+});
+
 app.get('/expenses', (req, res) => {
     res.json(expenses);
 });
