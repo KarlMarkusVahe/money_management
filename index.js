@@ -169,10 +169,67 @@ function readIncomesFromFile() {
     }
 }
 
+// Function to save expenses to file
+function saveExpensesToFile() {
+    try {
+        fs.writeFileSync('expenses.json', JSON.stringify(expenses));
+    } catch (error) {
+        console.error('Failed to save expenses:', error);
+    }
+}
+
+// Function to save incomes to file
+function saveIncomesToFile() {
+    try {
+        fs.writeFileSync('incomes.json', JSON.stringify(incomes));
+    } catch (error) {
+        console.error('Failed to save incomes:', error);
+    }
+}
+
 // Load expenses from file initially
 expenses = readExpensesFromFile();
 // Load incomes from file initially
 incomes = readIncomesFromFile();
+
+app.post('/expenses', (req, res) => {
+    const { name, amount } = req.body;
+    if (!amount) return res.status(400).send('Amount is required');
+    if (!name) return res.status(400).send('Name is required');
+
+    const expense = {
+        id: uuidv4(), // Generate a unique ID
+        name,
+        amount
+    };
+
+    expenses.push(expense);
+
+    // Save the updated expenses to the file
+    saveExpensesToFile();
+
+    res.status(201).json(expense);
+});
+
+// Route to handle income creation
+app.post('/incomes', (req, res) => {
+    const { name, amount } = req.body;
+    if (!amount) return res.status(400).send('Amount is required');
+    if (!name) return res.status(400).send('Name is required');
+
+    const income = {
+        id: uuidv4(), // Generate a unique ID
+        name,
+        amount
+    };
+
+    incomes.push(income);
+
+    // Save the updated incomes to the file
+    saveIncomesToFile();
+
+    res.status(201).json(income);
+});
 
 app.get('/expenses', (req, res) => {
     res.json(expenses);

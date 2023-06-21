@@ -28,6 +28,20 @@
     </button>
 
     <div v-if="sessionId">
+        <h2>Add Expense</h2>
+        <div class="mb-3 row">
+            <label for="expenseName" class="col-sm-2 col-form-label">Name</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="expenseName" v-model="expenseName">
+            </div>
+        </div>
+        <div class="mb-3 row">
+            <label for="expenseAmount" class="col-sm-2 col-form-label">Amount</label>
+            <div class="col-sm-10">
+                <input type="number" class="form-control" id="expenseAmount" v-model="expenseAmount">
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary" @click="addExpense">Add Expense</button>
 
         <h2>Expenses</h2>
         <ul>
@@ -35,6 +49,21 @@
                 {{ expense.name }}: ${{ expense.amount }}
             </li>
         </ul>
+
+        <h2>Add Income</h2>
+        <div class="mb-3 row">
+            <label for="incomeName" class="col-sm-2 col-form-label">Name</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="incomeName" v-model="incomeName">
+            </div>
+        </div>
+        <div class="mb-3 row">
+            <label for="incomeAmount" class="col-sm-2 col-form-label">Amount</label>
+            <div class="col-sm-10">
+                <input type="number" class="form-control" id="incomeAmount" v-model="incomeAmount">
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary" @click="addIncome">Add Income</button>
 
         <h2>Incomes</h2>
         <ul>
@@ -191,6 +220,28 @@
             showModal(modalId) {
                 this.modalHandler = new bootstrap.Modal(document.getElementById(modalId));
                 this.modalHandler.show(modalId);
+            },
+            addExpense() {
+                this.send('POST', '/expenses', {
+                    name: this.expenseName,
+                    amount: this.expenseAmount,
+                })
+                    .then(response => {
+                        this.expenses.push(response);
+                        this.expenseName = '';
+                        this.expenseAmount = 0;
+                    });
+            },
+            addIncome() {
+                this.send('POST', '/incomes', {
+                    name: this.incomeName,
+                    amount: this.incomeAmount,
+                })
+                    .then(response => {
+                        this.incomes.push(response);
+                        this.incomeName = '';
+                        this.incomeAmount = 0
+                    })
             },
             loadExpenses() {
                 this.send('GET', '/expenses')
