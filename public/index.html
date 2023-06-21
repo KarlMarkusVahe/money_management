@@ -146,6 +146,13 @@
                         this.modalHandler.hide();
                     });
             },
+            signOut() {
+                this.send('DELETE', '/sessions/')
+                    .then(() => {
+                        localStorage.removeItem('sessionId');
+                        this.sessionId = null;
+                    });
+            },
             showModal(modalId) {
                 this.modalHandler = new bootstrap.Modal(document.getElementById(modalId));
                 this.modalHandler.show(modalId);

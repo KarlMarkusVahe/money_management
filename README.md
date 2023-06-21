@@ -1,6 +1,13 @@
-# Example backend for ITA21
+# Money Managment Backend
 
-This backend serves as a reference implementation for ITA21 projects. It is a basic HTTP server, built using the Express framework in JavaScript,designed solely for testing and development purposes. Please note that it is not intended for production use and lacks security, speed, scalability, and aesthetics. Its purpose is solely to support the testing of the frontend and serves as an example of a backend for ITA21 projects.
+This backend is for Money Managment, which helps you keep track of your income from multiple sources and see where your income goes.
+
+
+## Description
+
+![image](https://github.com/KarlMarkusVahe/money_management_backend/assets/91603138/5870db05-86e1-4591-ada3-89aba038368a)
+
+It works by you making your account and putting in the income and expenses.
 
 ## Prerequisites
 
@@ -12,19 +19,11 @@ To begin working with this project, you need to have Node.js installed on your m
 Once you have installed Node.js, follow these steps:
 
 1. Fork and clone this repository to your local machine.
-1. Open the root directory of the project in terminal. 
-1. Copy the .env.sample file to .env by executing `cp .env.sample .env` and change the values to your liking.
+1. Open the root directory of the project in terminal.
 1. Run `npm install` to install all the necessary dependencies for the project.
-1. Run `npm start` to start the server on port 3000 (or whatever port you have specified in the .env file).
+1. Run `npm start` to start the server on port 3000.
 1. Navigate to [http://localhost:3000/docs](http://localhost:3000/docs) to see the API documentation.
 
-## Usage
-
-You must create your front end app in public/index.html file. Your front end app will be using the API in index.js as its backend. You can use for example Vue in CDN mode for front end. When needed, create new endpoints in index.js for your front end app. Do not forget to document them in the [swagger.yaml](swagger.yaml) file. An excellent way to generate content to swagger.yaml is to use Apicurio Studio (https://studio.apicur.io/).
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
 
 ## Acknowledgments
 
@@ -33,4 +32,6 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 - [NPM](https://www.npmjs.com/) for the package manager.
 - [Dotenv](https://www.npmjs.com/package/dotenv) for the environment variables.
 - [Bcrypt](https://www.npmjs.com/package/bcrypt) for the password hashing.
--
+- [Swagger-UI-Express](https://www.npmjs.com/package/swagger-ui-express) for documentation.
+- [YAML.js](https://www.npmjs.com/package/yamljs) for parsing and serializing YAML Data.
+- [UUID](https://www.npmjs.com/package/uuid) for generating unique identifiers.

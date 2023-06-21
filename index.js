@@ -134,6 +134,15 @@ function authorizeRequest(req, res, next) {
     next();
 }
 
+app.delete('/sessions', authorizeRequest, (req, res) => {
+
+    // Remove session using filter
+    sessions = sessions.filter(s => s.id !== req.session.id);
+
+    // Return 204 No Content
+    res.status(204).send();
+
+})
 
 app.listen(port, () => {
     console.log(`App running. Docs at http://localhost:${port}/docs`);
