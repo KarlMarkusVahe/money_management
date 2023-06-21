@@ -231,6 +231,58 @@ app.post('/incomes', (req, res) => {
     res.status(201).json(income);
 });
 
+// Route to handle updating an expense
+app.put('/expenses/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, amount } = req.body;
+
+    if (!name || !amount) {
+        return res.status(400).send('Name and amount are required');
+    }
+
+    // Find the expense object in the array by ID
+    const expense = expenses.find((expense) => expense.id === id);
+
+    if (!expense) {
+        return res.status(404).send('Expense not found');
+    }
+
+    // Update the expense properties
+    expense.name = name;
+    expense.amount = amount;
+
+    // Save the updated expenses to the file
+    saveExpensesToFile();
+
+    res.json(expense);
+});
+
+// Route to handle updating an income
+app.put('/incomes/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, amount } = req.body;
+
+    if (!name || !amount) {
+        return res.status(400).send('Name and amount are required');
+    }
+
+    // Find the income object in the array by ID
+    const income = incomes.find((income) => income.id === id);
+
+    if (!income) {
+        return res.status(404).send('Income not found');
+    }
+
+    // Update the income properties
+    income.name = name;
+    income.amount = amount;
+
+    // Save the updated income to the file
+    saveIncomesToFile();
+
+    res.json(income);
+});
+
 app.get('/expenses', (req, res) => {
     res.json(expenses);
 });
