@@ -118,22 +118,28 @@
                     headers['Authorization'] = `Bearer ${this.sessionId}`;
                 }
 
-                return axios({
+                let options = {
                     method,
                     url,
                     headers,
-                    data: body,
-                })
+                }
+
+                if (body) {
+                    options['data'] = body;
+                }
+
+                return axios(options)
                     .then(response => response.data)
                     .catch(error => {
-                        alert(`Error: ${error.response.data.message}`);
-                    });
+                        alert(error.response.data)
+                })
             },
             signUp() {
                 this.send('POST', '/accounts', {
                     email: this.signUpEmail,
                     password: this.signUpPassword,
-                });
+                })
+                    .then(this.modalHandler.hide());
             },
             signIn() {
                 this.send('POST', '/sessions', {
