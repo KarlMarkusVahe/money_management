@@ -27,6 +27,36 @@
         Sign Out
     </button>
 
+    <!-- Sign Up Modal -->
+    <div class="modal fade" id="signUpModal" tabindex="-1" aria-labelledby="signUpModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="signUpModalLabel">Sign Up</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 row">
+                        <label for="signUpEmail" class="col-sm-2 col-form-label">Email</label>
+                        <div class="col-sm-10">
+                            <input type="text" class="form-control" id="signUpEmail" v-model="signUpEmail">
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label for="signUpPassword" class="col-sm-2 col-form-label">Password</label>
+                        <div class="col-sm-10">
+                            <input type="password" class="form-control" id="signUpPassword" v-model="signUpPassword">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" @click="signUp">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sign In Modal -->
     <div class="modal fade" id="signInModal" tabindex="-1" aria-labelledby="signInModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -67,6 +97,8 @@
         data() {
             return {
                 modalHandler: null,
+                signUpEmail: null,
+                signUpPassword: null,
                 signInEmail: null,
                 signInPassword: null,
                 sessionId: null,
@@ -96,6 +128,12 @@
                     .catch(error => {
                         alert(`Error: ${error.response.data.message}`);
                     });
+            },
+            signUp() {
+                this.send('POST', '/accounts', {
+                    email: this.signUpEmail,
+                    password: this.signUpPassword,
+                });
             },
             signIn() {
                 this.send('POST', '/sessions', {

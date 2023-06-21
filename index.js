@@ -6,9 +6,7 @@ const swaggerDocument = yamlJs.load('./swagger.yaml');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcrypt");
 
-const accounts = [
-    {id: 1, email: 'a', password: 'a'}
-];
+const accounts = [];
 let sessions = [];
 
 require('dotenv').config();
@@ -30,6 +28,42 @@ app.use((err, req, res, next) => {
     const status = err.statusCode || 500;
     res.status(status).send(err.message);
 })
+
+app.post('/accounts', (req, res) => {
+
+    // Validations
+    if (!req.body.email) return res.status(400).send('Email is required');
+    if (!req.body.password) return res.status(400).send('Password is required');
+
+    // Validate that the email is unique
+    const existingAccount = accounts.find(a => a.email === req.body.email);
+    if (existingAccount) return res.status(409).send('This email already exists in the system');
+
+
+    // Hash password
+    const hash = bcrypt.hashSync(req.body.password, 10);
+
+    // Find max id, taking into account that the array might be empty
+    const maxId = accounts.length > 0 ? Math.max(...accounts.map(a => a.id)) + 1 : 1;
+
+    // Create account
+    let account = {
+        id: maxId,
+        email: req.body.email,
+        password: hash
+    }
+
+    // Save account
+    accounts.push(account);
+
+    // Remove password from response without mutating the original object
+    account = {...account};
+    delete account.password;
+
+    // Return account
+    res.status(201).send(account);
+
+});
 
 app.post('/sessions', async (req, res) => {
 
@@ -53,7 +87,7 @@ app.post('/sessions', async (req, res) => {
     bcrypt.compare(req.body.password, account.password, (err, result) => {
 
         // Validate password
-        // if (!result) return res.status(401).send('Invalid password');
+        if (!result) return res.status(401).send('Invalid password');
 
         // Create session
         const session = {
