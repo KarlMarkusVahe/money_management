@@ -3,3 +3,78 @@ info:
   title: ITA21
   version: 1.0.0
   description: Demonstration API
+paths:
+  /sessions:
+    summary: Path used to manage the list of sessions.
+    description: >-
+      The REST endpoint/path used to list and create zero or more `Session` entities.  This path
+      contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+    post:
+      requestBody:
+        description: A new `Session` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Session'
+        required: true
+      tags:
+        - /sessions
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+              examples:
+                Session:
+                  value:
+                    sessionId: 841959fa-b0b9-4185-8673-1531c59cd6c9
+          description: Successful sign in.
+      operationId: createSession
+      summary: Create a Session
+      description: Creates a new instance of a `Session`.
+    delete:
+      tags:
+        - /sessions
+      responses:
+        '204':
+          description: Successful signout
+      security:
+        -
+          Bearer: []
+      summary: Destroy a session
+      description: 'Destorys a `Session`, effectively signing out.'
+components:
+  schemas:
+    Credentials:
+      title: Root Type for Credentials
+      description: ''
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: admin@example.com
+        password: '1234'
+    Session:
+      title: Root Type for Session
+      description: ''
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      example:
+        email: admin@admin.com
+        password: admin
+  securitySchemes:
+    Bearer:
+      scheme: bearer
+      type: http
+tags:
+  -
+    name: /sessions
+    description: Operations with sessions
