@@ -294,26 +294,34 @@
                 this.modalHandler.show(modalId);
             },
             addExpense() {
-                this.send('POST', '/expenses', {
-                    name: this.expenseName,
-                    amount: this.expenseAmount,
-                })
-                    .then(response => {
-                        this.expenses.push(response);
-                        this.expenseName = '';
-                        this.expenseAmount = 0;
-                    });
+                if (this.expenseName && this.expenseAmount) {
+                    this.send('POST', '/expenses', {
+                        name: this.expenseName,
+                        amount: this.expenseAmount,
+                    })
+                        .then(response => {
+                            this.expenses.push(response);
+                            this.expenseName = '';
+                            this.expenseAmount = 0;
+                        });
+                } else {
+                    alert('Please enter a name and amount for the expense.');
+                }
             },
             addIncome() {
-                this.send('POST', '/incomes', {
-                    name: this.incomeName,
-                    amount: this.incomeAmount,
-                })
-                    .then(response => {
-                        this.incomes.push(response);
-                        this.incomeName = '';
-                        this.incomeAmount = 0
+                if (this.incomeName && this.incomeAmount) {
+                    this.send('POST', '/incomes', {
+                        name: this.incomeName,
+                        amount: this.incomeAmount,
                     })
+                        .then(response => {
+                            this.incomes.push(response);
+                            this.incomeName = '';
+                            this.incomeAmount = 0;
+                        });
+                } else {
+                    alert('Please enter a name and amount for the income.');
+                }
             },
             loadExpenses() {
                 this.send('GET', '/expenses')
@@ -328,50 +336,58 @@
                     })
             },
             updateExpense(expense) {
-                this.send('PUT', `/expenses/${expense.id}`, {
-                    name: this.editExpenseName,
-                    amount: this.editExpenseAmount
-                })
-                    .then(() => {
-                        // Update the expense locally
-                        const index = this.expenses.findIndex(item => item.id === expense.id);
-                        if (index !== -1) {
-                            this.expenses[index].name = this.editExpenseName;
-                            this.expenses[index].amount = this.editExpenseAmount;
-                        }
-                        // Reset the form fields and close the modal
-                        this.editExpenseName = '';
-                        this.editExpenseAmount = 0;
-                        this.modalHandler.hide();
+                if (this.editExpenseName && this.editExpenseAmount) {
+                    this.send('PUT', `/expenses/${expense.id}`, {
+                        name: this.editExpenseName,
+                        amount: this.editExpenseAmount
                     })
-                    .catch(error => {
-                        alert(`Error: ${error.response.data.message}`);
-                    });
+                        .then(() => {
+                            // Update the expense locally
+                            const index = this.expenses.findIndex(item => item.id === expense.id);
+                            if (index !== -1) {
+                                this.expenses[index].name = this.editExpenseName;
+                                this.expenses[index].amount = this.editExpenseAmount;
+                            }
+                            // Reset the form fields and close the modal
+                            this.editExpenseName = '';
+                            this.editExpenseAmount = 0;
+                            this.modalHandler.hide();
+                        })
+                        .catch(error => {
+                            alert(`Error: ${error.response.data.message}`);
+                        });
+                } else {
+                    alert('Please enter a name and amount for the expense.');
+                }
             },
             updateIncome(income) {
-                this.send('PUT', `/incomes/${income.id}`, {
-                    name: this.editIncomeName,
-                    amount: this.editIncomeAmount,
-                })
-                    .then(() => {
-                        // Update the income locally
-                        const updatedIncome = {
-                            id: income.id,
-                            name: this.editIncomeName,
-                            amount: this.editIncomeAmount,
-                        };
-                        const index = this.incomes.findIndex(i => i.id === updatedIncome.id);
-                        if (index !== -1) {
-                            this.incomes[index] = updatedIncome;
-                        }
-                        // Reset the form fields and close the modal
-                        this.editIncomeName = '';
-                        this.editIncomeAmount = 0;
-                        this.modalHandler.hide();
+                if (this.editIncomeName && this.editIncomeAmount) {
+                    this.send('PUT', `/incomes/${income.id}`, {
+                        name: this.editIncomeName,
+                        amount: this.editIncomeAmount,
                     })
-                    .catch(error => {
-                        alert(`Error: ${error.response.data.message}`);
-                    });
+                        .then(() => {
+                            // Update the income locally
+                            const updatedIncome = {
+                                id: income.id,
+                                name: this.editIncomeName,
+                                amount: this.editIncomeAmount,
+                            };
+                            const index = this.incomes.findIndex(i => i.id === updatedIncome.id);
+                            if (index !== -1) {
+                                this.incomes[index] = updatedIncome;
+                            }
+                            // Reset the form fields and close the modal
+                            this.editIncomeName = '';
+                            this.editIncomeAmount = 0;
+                            this.modalHandler.hide();
+                        })
+                        .catch(error => {
+                            alert(`Error: ${error.response.data.message}`);
+                        });
+                } else {
+                    alert('Please enter a name and amount for the income.');
+                }
             },
             deleteExpense(expenseId) {
                 axios.delete(`/expenses/${expenseId}`)

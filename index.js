@@ -194,8 +194,10 @@ incomes = readIncomesFromFile();
 
 app.post('/expenses', (req, res) => {
     const { name, amount } = req.body;
-    if (!amount) return res.status(400).send('Amount is required');
-    if (!name) return res.status(400).send('Name is required');
+
+    if (!name || !amount) {
+        return res.status(400).send('Name and amount are required');
+    }
 
     const expense = {
         id: uuidv4(), // Generate a unique ID
@@ -214,8 +216,10 @@ app.post('/expenses', (req, res) => {
 // Route to handle income creation
 app.post('/incomes', (req, res) => {
     const { name, amount } = req.body;
-    if (!amount) return res.status(400).send('Amount is required');
-    if (!name) return res.status(400).send('Name is required');
+
+    if (!name || !amount) {
+        return res.status(400).send('Name and amount are required');
+    }
 
     const income = {
         id: uuidv4(), // Generate a unique ID
@@ -330,5 +334,5 @@ app.get('/incomes', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`App running. Docs at http://localhost:${port}/docs`);
+    console.log(`App running. Docs at http://localhost:${port}`);
 })
