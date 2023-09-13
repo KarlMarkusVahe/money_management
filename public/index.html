@@ -366,14 +366,41 @@
             },
             addExpense() {
                 if (this.expenseName && this.expenseAmount) {
-                    this.send('POST', '/expenses', {
+                    const expenseData = {
                         name: this.expenseName,
                         amount: this.expenseAmount,
+                    };
+
+                    // Send a POST request to create the expense
+                    fetch('/expenses', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.sessionId}`, // Include the session token
+                        },
+                        body: JSON.stringify(expenseData),
                     })
                         .then(response => {
-                            this.expenses.push(response);
-                            this.expenseName = '';
+                            if (response.status === 201) {
+                                return response.json();
+                            } else if (response.status === 401) {
+                                alert('Unauthorized: Please log in');
+                                throw new Error('Unauthorized');
+                            } else {
+                                alert('Failed to add expense');
+                                throw new Error('Failed to add expense');
+                            }
+                        })
+                        .then(data => {
+                            // Handle successful response, e.g., update the UI or refresh the expense list
+                            this.expenses.push(data); // Add the created expense to the local list
+                            this.expenseName = ''; // Clear the form fields
                             this.expenseAmount = 0;
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            // Handle the error, e.g., display a user-friendly message
+                            alert('Failed to create the expense. Please try again later.');
                         });
                 } else {
                     alert('Please enter a name and amount for the expense.');
@@ -381,14 +408,41 @@
             },
             addIncome() {
                 if (this.incomeName && this.incomeAmount) {
-                    this.send('POST', '/incomes', {
+                    const incomeData = {
                         name: this.incomeName,
                         amount: this.incomeAmount,
+                    };
+
+                    // Send a POST request to create the income
+                    fetch('/incomes', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${this.sessionId}`, // Include the session token
+                        },
+                        body: JSON.stringify(incomeData),
                     })
                         .then(response => {
-                            this.incomes.push(response);
-                            this.incomeName = '';
+                            if (response.status === 201) {
+                                return response.json();
+                            } else if (response.status === 401) {
+                                alert('Unauthorized: Please log in');
+                                throw new Error('Unauthorized');
+                            } else {
+                                alert('Failed to add income');
+                                throw new Error('Failed to add income');
+                            }
+                        })
+                        .then(data => {
+                            // Handle successful response, e.g., update the UI or refresh the income list
+                            this.incomes.push(data); // Add the created income to the local list
+                            this.incomeName = ''; // Clear the form fields
                             this.incomeAmount = 0;
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            // Handle the error, e.g., display a user-friendly message
+                            alert('Failed to create the income. Please try again later.');
                         });
                 } else {
                     alert('Please enter a name and amount for the income.');

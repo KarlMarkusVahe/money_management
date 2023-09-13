@@ -159,91 +159,49 @@ async function authorizeRequest(req, res, next) {
 
 app.post('/expenses', authorizeRequest, async (req, res) => {
     const { name, amount } = req.body;
+    const userId = req.account.id; // Get the user's ID from the authenticated session
 
     if (!name || !amount) {
         return res.status(400).json({ error: 'Name and amount are required' });
     }
 
-    // Additional validation if needed (e.g., check if 'amount' is a valid number)
-
-    let connection; // Declare connection variable here
-
     try {
-        // Start a database transaction
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        const [result] = await connection.query('INSERT INTO expenses (name, amount) VALUES (?, ?)', [name, amount]);
+        const [result] = await pool.query('INSERT INTO expenses (name, amount, userId) VALUES (?, ?, ?)', [name, amount, userId]);
         const expense = {
             id: result.insertId,
             name,
             amount,
+            userId, // Store the user's ID with the expense
         };
-
-        // Commit the transaction
-        await connection.commit();
-
         res.status(201).json(expense);
     } catch (error) {
         console.error('Error creating expense:', error);
-
-        // Rollback the transaction in case of an error
-        if (connection) {
-            await connection.rollback();
-        }
-
         res.status(500).json({ error: 'Error creating expense' });
-    } finally {
-        // Release the database connection if it was acquired
-        if (connection) {
-            connection.release();
-        }
     }
 });
 
 
 // Route to handle income creation
-app.post('/incomes', authorizeRequest, async(req, res) => {
+app.post('/incomes', authorizeRequest, async (req, res) => {
     const { name, amount } = req.body;
+    const userId = req.account.id; // Get the user's ID from the authenticated session
 
     if (!name || !amount) {
         return res.status(400).json({ error: 'Name and amount are required' });
     }
 
-    // Additional validation if needed (e.g., check if 'amount' is a valid number)
-
-    let connection; // Declare connection variable here
-
     try {
-        // Start a database transaction
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
-
-        const [result] = await connection.query('INSERT INTO incomes (name, amount) VALUES (?, ?)', [name, amount]);
+        const [result] = await pool.query('INSERT INTO incomes (name, amount, userId) VALUES (?, ?, ?)', [name, amount, userId]);
         const income = {
             id: result.insertId,
             name,
             amount,
+            userId, // Store the user's ID with the income
         };
-
-        // Commit the transaction
-        await connection.commit();
-
         res.status(201).json(income);
     } catch (error) {
         console.error('Error creating income:', error);
-
-        // Rollback the transaction in case of an error
-        if (connection) {
-            await connection.rollback();
-        }
-
         res.status(500).json({ error: 'Error creating income' });
-    } finally {
-        // Release the database connection if it was acquired
-        if (connection) {
-            connection.release();
-        }
     }
 });
 
@@ -340,19 +298,23 @@ app.delete('/incomes/:id', authorizeRequest, async (req, res) => {
 });
 // Route to retrieve expenses for the authenticated user
 app.get('/expenses', authorizeRequest, async (req, res) => {
+    const userId = req.account.id; // Get the user's ID from the authenticated session
+
     try {
-        const [rows] = await pool.query('SELECT * FROM expenses');
+        const [rows] = await pool.query('SELECT * FROM expenses WHERE userId = ?', [userId]);
         res.json(rows);
     } catch (error) {
         console.error('Error retrieving expenses:', error);
-        res.status(500).send('Error retrieving expenses');
+        res.status(500).json({ error: 'Error retrieving expenses' });
     }
 });
 
 
 app.get('/incomes', authorizeRequest, async (req, res) => {
+    const userId = req.account.id; // Get the user's ID from the authenticated session
+
     try {
-        const [rows] = await pool.query('SELECT * FROM incomes');
+        const [rows] = await pool.query('SELECT * FROM incomes WHERE userId = ?', [userId]);
         res.json(rows);
     } catch (error) {
         console.error('Error retrieving incomes:', error);

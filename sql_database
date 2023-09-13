@@ -1,7 +1,9 @@
 CREATE TABLE expenses (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL
+    amount DECIMAL(10, 2) NOT NULL,
+    userId INT,
+    FOREIGN KEY (userId) REFERENCES accounts(id)
 );
 
 CREATE TABLE accounts (
@@ -19,5 +21,7 @@ CREATE TABLE sessions (
 CREATE TABLE incomes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL
+    amount DECIMAL(10, 2) NOT NULL,
+    userId INT,
+    FOREIGN KEY (userId) REFERENCES accounts(id)
 );
