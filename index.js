@@ -5,12 +5,14 @@ const yamlJs = require('yamljs');
 const swaggerDocument = yamlJs.load('./swagger.yaml');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcrypt");
-const fs = require('fs');
+const mysql = require('mysql2/promise');
 
-const accounts = [];
-let sessions = [];
-let expenses = []; // Define the expenses variable
-let incomes = []; // Define the incomes variable
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'qwerty',
+    database: process.env.DB_NAME || 'main',
+});
 
 require('dotenv').config();
 
@@ -32,211 +34,221 @@ app.use((err, req, res, next) => {
     res.status(status).send(err.message);
 })
 
-app.post('/accounts', (req, res) => {
+// Route to create a new account
+app.post('/accounts', async (req, res) => {
+    const { email, password } = req.body;
 
-    // Validations
-    if (!req.body.email) return res.status(400).send('Email is required');
-    if (!req.body.password) return res.status(400).send('Password is required');
-
-    // Validate that the email is unique
-    const existingAccount = accounts.find(a => a.email === req.body.email);
-    if (existingAccount) return res.status(409).send('This email already exists in the system');
-
-
-    // Hash password
-    const hash = bcrypt.hashSync(req.body.password, 10);
-
-    // Find max id, taking into account that the array might be empty
-    const maxId = accounts.length > 0 ? Math.max(...accounts.map(a => a.id)) + 1 : 1;
-
-    // Create account
-    let account = {
-        id: maxId,
-        email: req.body.email,
-        password: hash
+    if (!email || !password) {
+        return res.status(400).send('Email and password are required');
     }
 
-    // Save account
-    accounts.push(account);
-
-    // Remove password from response without mutating the original object
-    account = {...account};
-    delete account.password;
-
-    // Return account
-    res.status(201).send(account);
-
+    try {
+        const hash = await bcrypt.hash(password, 10);
+        const [result] = await pool.query('INSERT INTO accounts (email, password) VALUES (?, ?)', [email, hash]);
+        const account = {
+            id: result.insertId,
+            email,
+        };
+        res.status(201).json(account);
+    } catch (error) {
+        console.error('Error creating account:', error);
+        res.status(500).send('Error creating account');
+    }
 });
 
+// Route to create a session (login)
 app.post('/sessions', async (req, res) => {
+    const { email, password } = req.body;
 
-    // Validations
-    if (!req.body.email) return res.status(400).send('Email is required');
-    if (!req.body.password) return res.status(400).send('Password is required');
+    if (!email || !password) {
+        return res.status(400).send('Email and password are required');
+    }
 
-    // Find account
-    const account = accounts.find(a => a.email === req.body.email);
-    console.log(account)
+    try {
+        const [rows] = await pool.query('SELECT * FROM accounts WHERE email = ?', [email]);
 
-    // Validate account
-    if (!account) return res.status(404).send('Account not found');
-
-    // Validate password using bcrypt with promises
-    bcrypt.compare(req.body.password, account.password).then(function (result) {
-
-    });
-
-    // Check password hash
-    bcrypt.compare(req.body.password, account.password, (err, result) => {
-
-        // Validate password
-        if (!result) return res.status(401).send('Invalid password');
-
-        // Create session
-        const session = {
-            id: uuidv4(),
-            accountId: account.id
+        if (rows.length === 0) {
+            return res.status(404).send('Account not found');
         }
 
-        // Save session
-        sessions.push(session);
+        const account = rows[0];
 
-        // Return session
-        res.status(201).send(session);
+        const passwordMatch = await bcrypt.compare(password, account.password);
 
-    });
-})
+        if (!passwordMatch) {
+            return res.status(401).send('Invalid password');
+        }
 
-function authorizeRequest(req, res, next) {
+        const sessionId = uuidv4();
 
+        // Store the session in the sessions table
+        await pool.query('INSERT INTO sessions (id, accountId) VALUES (?, ?)', [sessionId, account.id]);
+
+        const session = {
+            id: sessionId,
+            accountId: account.id,
+        };
+
+        res.status(201).json(session);
+    } catch (error) {
+        console.error('Error creating session:', error);
+        res.status(500).send('Error creating session');
+    }
+});
+
+// Route to delete a session (logout)
+app.delete('/sessions', authorizeRequest, async (req, res) => {
+    try {
+        // Delete the session from the sessions table
+        await pool.query('DELETE FROM sessions WHERE id = ?', [req.session.id]);
+
+        // Return 204 No Content
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting session:', error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+// Middleware to authorize requests
+async function authorizeRequest(req, res, next) {
     // Validate authorization header exists
-    if (!req.headers.authorization) return res.status(401).send('Authorization header is required');
+    if (!req.headers.authorization) {
+        return res.status(401).send('Authorization header is required');
+    }
 
     // Validate authorization header format
     const parts = req.headers.authorization.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') return res.status(401).send('Authorization header format is Bearer {token}');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+        return res.status(401).send('Authorization header format is Bearer {token}');
+    }
 
     // Get session token
     const token = parts[1];
 
-    // Find session
-    const session = sessions.find(s => s.id === token);
-    if (!session) return res.status(401).send('Invalid token');
-
-    // Find account
-    const account = accounts.find(a => a.id === session.accountId);
-    if (!account) return res.status(401).send('Invalid token');
-
-    // Set account on request
-    req.account = account;
-
-    // Set session on request
-    req.session = session;
-
-    // Call next middleware
-    next();
-}
-
-app.delete('/sessions', authorizeRequest, (req, res) => {
-
-    // Remove session using filter
-    sessions = sessions.filter(s => s.id !== req.session.id);
-
-    // Return 204 No Content
-    res.status(204).send();
-
-})
-
-// Function to read expenses from file
-function readExpensesFromFile() {
     try {
-        const fileData = fs.readFileSync('expenses.json', 'utf8');
-        return JSON.parse(fileData);
+        // Check the session in the sessions table
+        const [rows] = await pool.query('SELECT * FROM sessions WHERE id = ?', [token]);
+
+        if (rows.length === 0) {
+            return res.status(401).send('Invalid token');
+        }
+
+        const session = rows[0];
+
+        // Find the associated account
+        const [accountRows] = await pool.query('SELECT * FROM accounts WHERE id = ?', [session.accountId]);
+
+        if (accountRows.length === 0) {
+            return res.status(401).send('Invalid token');
+        }
+
+        const account = accountRows[0];
+
+        // Attach the account and session to the request
+        req.account = account;
+        req.session = session;
+
+        // Continue with the next middleware
+        next();
     } catch (error) {
-        console.error('Failed to read expenses:', error);
-        return [];
+        console.error('Error authorizing request:', error);
+        res.status(500).send('Internal Server Error');
     }
 }
 
-// Function to read incomes from file
-function readIncomesFromFile() {
-    try {
-        const fileData = fs.readFileSync('incomes.json', 'utf8');
-        return JSON.parse(fileData);
-    } catch (error) {
-        console.error('Failed to read incomes:', error);
-        return [];
-    }
-}
-
-// Function to save expenses to file
-function saveExpensesToFile() {
-    try {
-        fs.writeFileSync('expenses.json', JSON.stringify(expenses));
-    } catch (error) {
-        console.error('Failed to save expenses:', error);
-    }
-}
-
-// Function to save incomes to file
-function saveIncomesToFile() {
-    try {
-        fs.writeFileSync('incomes.json', JSON.stringify(incomes));
-    } catch (error) {
-        console.error('Failed to save incomes:', error);
-    }
-}
-
-// Load expenses from file initially
-expenses = readExpensesFromFile();
-// Load incomes from file initially
-incomes = readIncomesFromFile();
-
-app.post('/expenses', (req, res) => {
+app.post('/expenses', authorizeRequest, async (req, res) => {
     const { name, amount } = req.body;
 
     if (!name || !amount) {
-        return res.status(400).send('Name and amount are required');
+        return res.status(400).json({ error: 'Name and amount are required' });
     }
 
-    const expense = {
-        id: uuidv4(), // Generate a unique ID
-        name,
-        amount
-    };
+    // Additional validation if needed (e.g., check if 'amount' is a valid number)
 
-    expenses.push(expense);
+    let connection; // Declare connection variable here
 
-    // Save the updated expenses to the file
-    saveExpensesToFile();
+    try {
+        // Start a database transaction
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
 
-    res.status(201).json(expense);
+        const [result] = await connection.query('INSERT INTO expenses (name, amount) VALUES (?, ?)', [name, amount]);
+        const expense = {
+            id: result.insertId,
+            name,
+            amount,
+        };
+
+        // Commit the transaction
+        await connection.commit();
+
+        res.status(201).json(expense);
+    } catch (error) {
+        console.error('Error creating expense:', error);
+
+        // Rollback the transaction in case of an error
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({ error: 'Error creating expense' });
+    } finally {
+        // Release the database connection if it was acquired
+        if (connection) {
+            connection.release();
+        }
+    }
 });
 
+
 // Route to handle income creation
-app.post('/incomes', (req, res) => {
+app.post('/incomes', authorizeRequest, async(req, res) => {
     const { name, amount } = req.body;
 
     if (!name || !amount) {
-        return res.status(400).send('Name and amount are required');
+        return res.status(400).json({ error: 'Name and amount are required' });
     }
 
-    const income = {
-        id: uuidv4(), // Generate a unique ID
-        name,
-        amount
-    };
+    // Additional validation if needed (e.g., check if 'amount' is a valid number)
 
-    incomes.push(income);
+    let connection; // Declare connection variable here
 
-    // Save the updated incomes to the file
-    saveIncomesToFile();
+    try {
+        // Start a database transaction
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
 
-    res.status(201).json(income);
+        const [result] = await connection.query('INSERT INTO incomes (name, amount) VALUES (?, ?)', [name, amount]);
+        const income = {
+            id: result.insertId,
+            name,
+            amount,
+        };
+
+        // Commit the transaction
+        await connection.commit();
+
+        res.status(201).json(income);
+    } catch (error) {
+        console.error('Error creating income:', error);
+
+        // Rollback the transaction in case of an error
+        if (connection) {
+            await connection.rollback();
+        }
+
+        res.status(500).json({ error: 'Error creating income' });
+    } finally {
+        // Release the database connection if it was acquired
+        if (connection) {
+            connection.release();
+        }
+    }
 });
 
 // Route to handle updating an expense
-app.put('/expenses/:id', (req, res) => {
+app.put('/expenses/:id', authorizeRequest, async (req, res) => {
     const { id } = req.params;
     const { name, amount } = req.body;
 
@@ -244,25 +256,28 @@ app.put('/expenses/:id', (req, res) => {
         return res.status(400).send('Name and amount are required');
     }
 
-    // Find the expense object in the array by ID
-    const expense = expenses.find((expense) => expense.id === id);
+    try {
+        const [result] = await pool.query('UPDATE expenses SET name = ?, amount = ? WHERE id = ?', [name, amount, id]);
 
-    if (!expense) {
-        return res.status(404).send('Expense not found');
+        if (result.affectedRows === 0) {
+            return res.status(404).send('Expense not found');
+        }
+
+        const updatedExpense = {
+            id: id,
+            name: name,
+            amount: amount,
+        };
+
+        res.json(updatedExpense);
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        res.status(500).send('Error updating expense');
     }
-
-    // Update the expense properties
-    expense.name = name;
-    expense.amount = amount;
-
-    // Save the updated expenses to the file
-    saveExpensesToFile();
-
-    res.json(expense);
 });
 
 // Route to handle updating an income
-app.put('/incomes/:id', (req, res) => {
+app.put('/incomes/:id', authorizeRequest, async (req, res) => {
     const { id } = req.params;
     const { name, amount } = req.body;
 
@@ -270,69 +285,80 @@ app.put('/incomes/:id', (req, res) => {
         return res.status(400).send('Name and amount are required');
     }
 
-    // Find the income object in the array by ID
-    const income = incomes.find((income) => income.id === id);
+    try {
+        const [result] = await pool.query('UPDATE incomes SET name = ?, amount = ? WHERE id = ?', [name, amount, id]);
 
-    if (!income) {
-        return res.status(404).send('Income not found');
+        if (result.affectedRows === 0) {
+            return res.status(404).send('Income not found');
+        }
+
+        const updatedIncome = {
+            id: id,
+            name: name,
+            amount: amount,
+        };
+
+        res.json(updatedIncome);
+    } catch (error) {
+        console.error('Error updating expense:', error);
+        res.status(500).send('Error updating expense');
     }
-
-    // Update the income properties
-    income.name = name;
-    income.amount = amount;
-
-    // Save the updated income to the file
-    saveIncomesToFile();
-
-    res.json(income);
 });
 
-app.delete('/expenses/:id', (req, res) => {
+app.delete('/expenses/:id', authorizeRequest, async (req, res) => {
     const { id } = req.params;
 
-    // Find the index of the expense in the array by ID
-    const index = expenses.findIndex((expense) => expense.id === id);
+    try {
+        const [result] = await pool.query('DELETE FROM expenses WHERE id = ?', [id]);
 
-    if (index === -1) {
-        return res.status(404).send('Expense not found');
+        if (result.affectedRows === 0) {
+            return res.status(404).send('Expense not found');
+        }
+
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting expense:', error);
+        res.status(500).send('Error deleting expense');
     }
-
-    // Remove the expense from the array
-    expenses.splice(index, 1);
-
-    // Save the updated expenses to the file
-    saveExpensesToFile();
-
-    res.status(204).send();
 });
 
-app.delete('/incomes/:id', (req, res) => {
+app.delete('/incomes/:id', authorizeRequest, async (req, res) => {
     const { id } = req.params;
 
-    // Find the index of the income in the array by ID
-    const index = incomes.findIndex((income) => income.id === id);
+    try {
+        const [result] = await pool.query('DELETE FROM incomes WHERE id = ?', [id]);
 
-    if (index === -1) {
-        return res.status(404).send('Income not found');
+        if (result.affectedRows === 0) {
+            return res.status(404).send('Income not found');
+        }
+
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error deleting income:', error);
+        res.status(500).send('Error deleting income');
     }
-
-    // Remove the income from the array
-    incomes.splice(index, 1);
-
-    // Save the updated incomes to the file
-    saveIncomesToFile();
-
-    res.status(204).send();
+});
+// Route to retrieve expenses for the authenticated user
+app.get('/expenses', authorizeRequest, async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM expenses');
+        res.json(rows);
+    } catch (error) {
+        console.error('Error retrieving expenses:', error);
+        res.status(500).send('Error retrieving expenses');
+    }
 });
 
-app.get('/expenses', (req, res) => {
-    res.json(expenses);
-});
 
-app.get('/incomes', (req, res) => {
-    res.json(incomes);
+app.get('/incomes', authorizeRequest, async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM incomes');
+        res.json(rows);
+    } catch (error) {
+        console.error('Error retrieving incomes:', error);
+        res.status(500).send('Error retrieving incomes');
+    }
 });
-
 app.listen(port, () => {
     console.log(`App running. Docs at http://localhost:${port}`);
 })

@@ -15,7 +15,7 @@
 
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" v-if="!sessionId"
             @click="showModal('signUpModal')">
-            Sign Up
+        Sign Up
     </button>
 
     &nbsp;
@@ -225,19 +225,27 @@
             }
         },
         methods: {
+            getUserSessionToken() {
+                // Retrieve the session token from localStorage
+                return localStorage.getItem('sessionId');
+            },
             send(method, url, body = null) {
                 const headers = {
                     'Content-Type': 'application/json',
                 };
-                if (this.sessionId) {
-                    headers['Authorization'] = `Bearer ${this.sessionId}`;
+
+                // Get the session token using getUserSessionToken
+                const token = this.getUserSessionToken();
+
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
                 }
 
                 let options = {
                     method,
                     url,
                     headers,
-                }
+                };
 
                 if (body) {
                     options['data'] = body;
@@ -246,38 +254,101 @@
                 return axios(options)
                     .then(response => response.data)
                     .catch(error => {
-                        alert(error.response.data)
-                })
-            },
-            signUp() {
-                this.send('POST', '/accounts', {
-                    email: this.signUpEmail,
-                    password: this.signUpPassword,
-                })
-                    .then(this.modalHandler.hide());
-            },
-            signIn() {
-                this.send('POST', '/sessions', {
-                    email: this.signInEmail,
-                    password: this.signInPassword,
-                })
-                    .then(response => {
-                        localStorage.setItem('sessionId', response.id);
-                        this.sessionId = response.id;
-                        this.modalHandler.hide();
-                        this.loadExpenses();
-                        this.loadIncomes();
+                        alert(error.response.data);
                     });
             },
+            signUp() {
+                if (this.signUpEmail && this.signUpPassword) {
+                    const userData = {
+                        email: this.signUpEmail,
+                        password: this.signUpPassword,
+                    };
+
+                    fetch('/accounts', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(userData),
+                    })
+                        .then(response => {
+                            if (response.status === 201) {
+                                // User created successfully
+                                this.modalHandler.hide();
+                            } else if (response.status === 409) {
+                                // Email already exists
+                                alert('This email is already registered');
+                            } else {
+                                // Handle other errors
+                                alert('Failed to sign up');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                } else {
+                    alert('Please enter an email and password to sign up');
+                }
+            },
+
+            signIn() {
+                if (this.signInEmail && this.signInPassword) {
+                    const userData = {
+                        email: this.signInEmail,
+                        password: this.signInPassword,
+                    };
+
+                    fetch('/sessions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(userData),
+                    })
+                        .then(response => {
+                            if (response.status === 201) {
+                                return response.json();
+                            } else if (response.status === 401) {
+                                alert('Invalid email or password');
+                                throw new Error('Unauthorized');
+                            } else {
+                                alert('Failed to sign in');
+                                throw new Error('Failed to sign in');
+                            }
+                        })
+                        .then(data => {
+                            localStorage.setItem('sessionId', data.id);
+                            this.sessionId = data.id;
+                            this.modalHandler.hide();
+                            this.loadExpenses();
+                            this.loadIncomes();
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                } else {
+                    alert('Please enter an email and password to sign in');
+                }
+            },
+
             signOut() {
-                this.send('DELETE', '/sessions/')
+                fetch('/sessions', {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${this.sessionId}`,
+                    },
+                })
                     .then(() => {
                         localStorage.removeItem('sessionId');
                         this.sessionId = null;
                         this.expenses = [];
                         this.incomes = [];
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                     });
             },
+
             showModal(modalId, item) {
                 this.modalHandler = new bootstrap.Modal(document.getElementById(modalId));
                 if (item) {
@@ -324,16 +395,56 @@
                 }
             },
             loadExpenses() {
-                this.send('GET', '/expenses')
+                fetch('/expenses', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${this.sessionId}`, // Include the session token
+                        'Content-Type': 'application/json',
+                    },
+                })
                     .then(response => {
-                        this.expenses = response;
+                        if (response.status === 200) {
+                            return response.json();
+                        } else if (response.status === 401) {
+                            alert('Unauthorized: Please log in');
+                            throw new Error('Unauthorized');
+                        } else {
+                            alert('Failed to load expenses');
+                            throw new Error('Failed to load expenses');
+                        }
+                    })
+                    .then(data => {
+                        this.expenses = data;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                     });
             },
             loadIncomes() {
-                this.send('GET', '/incomes')
+                fetch('/incomes', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${this.sessionId}`, // Include the session token
+                        'Content-Type': 'application/json',
+                    },
+                })
                     .then(response => {
-                        this.incomes = response;
+                        if (response.status === 200) {
+                            return response.json();
+                        } else if (response.status === 401) {
+                            alert('Unauthorized: Please log in');
+                            throw new Error('Unauthorized');
+                        } else {
+                            alert('Failed to load incomes');
+                            throw new Error('Failed to load incomes');
+                        }
                     })
+                    .then(data => {
+                        this.incomes = data;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
             },
             updateExpense(expense) {
                 if (this.editExpenseName && this.editExpenseAmount) {
@@ -364,22 +475,18 @@
                 if (this.editIncomeName && this.editIncomeAmount) {
                     this.send('PUT', `/incomes/${income.id}`, {
                         name: this.editIncomeName,
-                        amount: this.editIncomeAmount,
+                        amount: this.editIncomeAmount
                     })
                         .then(() => {
                             // Update the income locally
-                            const updatedIncome = {
-                                id: income.id,
-                                name: this.editIncomeName,
-                                amount: this.editIncomeAmount,
-                            };
-                            const index = this.incomes.findIndex(i => i.id === updatedIncome.id);
+                            const index = this.incomes.findIndex(item => item.id === income.id);
                             if (index !== -1) {
-                                this.incomes[index] = updatedIncome;
+                                this.incomes[index].name = this.editIncomeName;
+                                this.incomes[index].amount = this.editIncomeAmount;
                             }
                             // Reset the form fields and close the modal
                             this.editIncomeName = '';
-                            this.editIncomeAmount = 0;
+                            this.editIncomeeAmount = 0;
                             this.modalHandler.hide();
                         })
                         .catch(error => {
@@ -390,25 +497,37 @@
                 }
             },
             deleteExpense(expenseId) {
-                axios.delete(`/expenses/${expenseId}`)
+                axios.delete(`/expenses/${expenseId}`, {
+                    headers: {
+                        Authorization: `Bearer ${this.sessionId}`,
+                    },
+                })
                     .then(() => {
                         // Remove the deleted expense from the local array
                         this.expenses = this.expenses.filter(expense => expense.id !== expenseId);
                     })
                     .catch(error => {
                         console.error('Failed to delete expense:', error);
+                        // Display a user-friendly error message or notification here
+                        alert('Failed to delete the expense. Please try again later.');
                     });
             },
             deleteIncome(incomeId) {
-                axios.delete(`/incomes/${incomeId}`)
+                axios.delete(`/incomes/${incomeId}`, {
+                    headers: {
+                        Authorization: `Bearer ${this.sessionId}`,
+                    },
+                })
                     .then(() => {
                         // Remove the deleted income from the local array
                         this.incomes = this.incomes.filter(income => income.id !== incomeId);
                     })
                     .catch(error => {
                         console.error('Failed to delete income:', error);
+                        // Display a user-friendly error message or notification here
+                        alert('Failed to delete the income. Please try again later.');
                     });
-            }
+            },
         },
     }).mount('#app');
 </script>
