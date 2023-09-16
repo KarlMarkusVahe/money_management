@@ -365,7 +365,7 @@
                 this.modalHandler.show(modalId);
             },
             addExpense() {
-                if (this.expenseName && this.expenseAmount) {
+                if (this.expenseName && this.expenseAmount > 0) {
                     const expenseData = {
                         name: this.expenseName,
                         amount: this.expenseAmount,
@@ -383,31 +383,39 @@
                         .then(response => {
                             if (response.status === 201) {
                                 return response.json();
+                            } else if (response.status === 400) {
+                                return response.json().then(errorData => {
+                                    alert(errorData.error); // Display the validation error message
+                                    throw new Error('Validation Error'); // Skip the next catch block
+                                });
                             } else if (response.status === 401) {
                                 alert('Unauthorized: Please log in');
                                 throw new Error('Unauthorized');
                             } else {
-                                alert('Failed to add expense');
-                                throw new Error('Failed to add expense');
+                                throw new Error('Failed to add expense'); // Throw a specific error for other cases
                             }
                         })
                         .then(data => {
-                            // Handle successful response, e.g., update the UI or refresh the expense list
-                            this.expenses.push(data); // Add the created expense to the local list
-                            this.expenseName = ''; // Clear the form fields
+                            // Add the newly created expense to the local list
+                            this.expenses.push(data);
+
+                            // Clear the form fields
+                            this.expenseName = '';
                             this.expenseAmount = 0;
                         })
                         .catch(error => {
-                            console.error('Error:', error);
-                            // Handle the error, e.g., display a user-friendly message
-                            alert('Failed to create the expense. Please try again later.');
+                            if (error.message !== 'Validation Error') {
+                                console.error('Error:', error);
+                                // Handle other errors, e.g., display a user-friendly message
+                                alert('Failed to create the expense. Please try again later.');
+                            }
                         });
                 } else {
-                    alert('Please enter a name and amount for the expense.');
+                    alert('Please enter a name and a non-negative amount for the expense.');
                 }
             },
             addIncome() {
-                if (this.incomeName && this.incomeAmount) {
+                if (this.incomeName && this.incomeAmount > 0) {
                     const incomeData = {
                         name: this.incomeName,
                         amount: this.incomeAmount,
@@ -425,27 +433,35 @@
                         .then(response => {
                             if (response.status === 201) {
                                 return response.json();
+                            } else if (response.status === 400) {
+                                return response.json().then(errorData => {
+                                    alert(errorData.error); // Display the validation error message
+                                    throw new Error('Validation Error'); // Skip the next catch block
+                                });
                             } else if (response.status === 401) {
                                 alert('Unauthorized: Please log in');
                                 throw new Error('Unauthorized');
                             } else {
-                                alert('Failed to add income');
-                                throw new Error('Failed to add income');
+                                throw new Error('Failed to add income'); // Throw a specific error for other cases
                             }
                         })
                         .then(data => {
-                            // Handle successful response, e.g., update the UI or refresh the income list
-                            this.incomes.push(data); // Add the created income to the local list
-                            this.incomeName = ''; // Clear the form fields
+                            // Add the newly created income to the local list
+                            this.incomes.push(data);
+
+                            // Clear the form fields
+                            this.incomeName = '';
                             this.incomeAmount = 0;
                         })
                         .catch(error => {
-                            console.error('Error:', error);
-                            // Handle the error, e.g., display a user-friendly message
-                            alert('Failed to create the income. Please try again later.');
+                            if (error.message !== 'Validation Error') {
+                                console.error('Error:', error);
+                                // Handle other errors, e.g., display a user-friendly message
+                                alert('Failed to create the income. Please try again later.');
+                            }
                         });
                 } else {
-                    alert('Please enter a name and amount for the income.');
+                    alert('Please enter a name and a non-negative amount for the income.');
                 }
             },
             loadExpenses() {
@@ -501,54 +517,96 @@
                     });
             },
             updateExpense(expense) {
-                if (this.editExpenseName && this.editExpenseAmount) {
-                    this.send('PUT', `/expenses/${expense.id}`, {
-                        name: this.editExpenseName,
-                        amount: this.editExpenseAmount
-                    })
-                        .then(() => {
-                            // Update the expense locally
-                            const index = this.expenses.findIndex(item => item.id === expense.id);
-                            if (index !== -1) {
-                                this.expenses[index].name = this.editExpenseName;
-                                this.expenses[index].amount = this.editExpenseAmount;
-                            }
-                            // Reset the form fields and close the modal
-                            this.editExpenseName = '';
-                            this.editExpenseAmount = 0;
-                            this.modalHandler.hide();
-                        })
-                        .catch(error => {
-                            alert(`Error: ${error.response.data.message}`);
-                        });
-                } else {
-                    alert('Please enter a name and amount for the expense.');
+                const updatedName = this.editExpenseName;
+                const updatedAmount = parseFloat(this.editExpenseAmount);
+
+                if (!updatedName || isNaN(updatedAmount) || updatedAmount < 0) {
+                    alert('Please enter a valid name and a non-negative amount for the expense.');
+                    return;
                 }
+
+                this.send('PUT', `/expenses/${expense.id}`, {
+                    name: updatedName,
+                    amount: updatedAmount,
+                })
+                    .then(response => {
+                        if (response && response.status === 200) {
+                            return response.json();
+                        } else if (response && response.status === 400) {
+                            return response.json().then(errorData => {
+                                alert(errorData.error); // Display the validation error message
+                                throw new Error(errorData.error); // Throw the error message as an Error object
+                            });
+                        } else if (response && response.status === 401) {
+                            alert('Unauthorized: Please log in');
+                            throw new Error('Unauthorized');
+                        } else {
+                            throw new Error('Failed to update expense');
+                        }
+                    })
+                    .then(data => {
+                        // Update the expense locally
+                        const index = this.expenses.findIndex(item => item.id === expense.id);
+                        if (index !== -1) {
+                            this.expenses[index].name = updatedName;
+                            this.expenses[index].amount = updatedAmount;
+                        }
+                        // Reset the form fields and close the modal
+                        this.editExpenseName = '';
+                        this.editExpenseAmount = 0;
+                        this.modalHandler.hide();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error.message);
+                        // Handle other errors, e.g., display a user-friendly message
+                        alert(`Failed to update expense: ${error.message}`);
+                    });
             },
             updateIncome(income) {
-                if (this.editIncomeName && this.editIncomeAmount) {
-                    this.send('PUT', `/incomes/${income.id}`, {
-                        name: this.editIncomeName,
-                        amount: this.editIncomeAmount
-                    })
-                        .then(() => {
-                            // Update the income locally
-                            const index = this.incomes.findIndex(item => item.id === income.id);
-                            if (index !== -1) {
-                                this.incomes[index].name = this.editIncomeName;
-                                this.incomes[index].amount = this.editIncomeAmount;
-                            }
-                            // Reset the form fields and close the modal
-                            this.editIncomeName = '';
-                            this.editIncomeeAmount = 0;
-                            this.modalHandler.hide();
-                        })
-                        .catch(error => {
-                            alert(`Error: ${error.response.data.message}`);
-                        });
-                } else {
-                    alert('Please enter a name and amount for the income.');
+                const updatedName = this.editIncomeName;
+                const updatedAmount = parseFloat(this.editIncomeAmount);
+
+                if (!updatedName || isNaN(updatedAmount) || updatedAmount < 0) {
+                    alert('Please enter a valid name and a non-negative amount for the income.');
+                    return;
                 }
+
+                this.send('PUT', `/incomes/${income.id}`, {
+                    name: updatedName,
+                    amount: updatedAmount,
+                })
+                    .then(response => {
+                        if (response && response.status === 200) {
+                            return response.json();
+                        } else if (response && response.status === 400) {
+                            return response.json().then(errorData => {
+                                alert(errorData.error); // Display the validation error message
+                                throw new Error(errorData.error); // Throw the error message as an Error object
+                            });
+                        } else if (response && response.status === 401) {
+                            alert('Unauthorized: Please log in');
+                            throw new Error('Unauthorized');
+                        } else {
+                            throw new Error('Failed to update income');
+                        }
+                    })
+                    .then(data => {
+                        // Update the income locally
+                        const index = this.incomes.findIndex(item => item.id === income.id);
+                        if (index !== -1) {
+                            this.incomes[index].name = updatedName;
+                            this.incomes[index].amount = updatedAmount;
+                        }
+                        // Reset the form fields and close the modal
+                        this.editIncomeName = '';
+                        this.editIncomeAmount = 0;
+                        this.modalHandler.hide();
+                    })
+                    .catch(error => {
+                        console.error('Error:', error.message);
+                        // Handle other errors, e.g., display a user-friendly message
+                        alert(`Failed to update income: ${error.message}`);
+                    });
             },
             deleteExpense(expenseId) {
                 axios.delete(`/expenses/${expenseId}`, {

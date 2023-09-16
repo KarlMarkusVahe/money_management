@@ -161,8 +161,12 @@ app.post('/expenses', authorizeRequest, async (req, res) => {
     const { name, amount } = req.body;
     const userId = req.account.id; // Get the user's ID from the authenticated session
 
-    if (!name || !amount) {
-        return res.status(400).json({ error: 'Name and amount are required' });
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    if (amount === undefined || amount < 0) {
+        return res.status(400).json({ error: 'Amount must be a non-negative number' });
     }
 
     try {
@@ -180,14 +184,17 @@ app.post('/expenses', authorizeRequest, async (req, res) => {
     }
 });
 
-
 // Route to handle income creation
 app.post('/incomes', authorizeRequest, async (req, res) => {
     const { name, amount } = req.body;
     const userId = req.account.id; // Get the user's ID from the authenticated session
 
-    if (!name || !amount) {
-        return res.status(400).json({ error: 'Name and amount are required' });
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    if (amount === undefined || amount < 0) {
+        return res.status(400).json({ error: 'Amount must be a non-negative number' });
     }
 
     try {
@@ -201,17 +208,18 @@ app.post('/incomes', authorizeRequest, async (req, res) => {
         res.status(201).json(income);
     } catch (error) {
         console.error('Error creating income:', error);
-        res.status(500).json({ error: 'Error creating income' });
+        res.status(500).json({ error: 'Failed to create the income. Please try again later.' });
     }
 });
+
 
 // Route to handle updating an expense
 app.put('/expenses/:id', authorizeRequest, async (req, res) => {
     const { id } = req.params;
     const { name, amount } = req.body;
 
-    if (!name || !amount) {
-        return res.status(400).send('Name and amount are required');
+    if (!name || amount === undefined || amount < 0) {
+        return res.status(400).json({ error: 'Name is required, and amount must be a non-negative number' });
     }
 
     try {
@@ -239,8 +247,12 @@ app.put('/incomes/:id', authorizeRequest, async (req, res) => {
     const { id } = req.params;
     const { name, amount } = req.body;
 
-    if (!name || !amount) {
-        return res.status(400).send('Name and amount are required');
+    if (!name) {
+        return res.status(400).json({ error: 'Name is required' });
+    }
+
+    if (amount === undefined || amount < 0) {
+        return res.status(400).json({ error: 'Amount must be a non-negative number' });
     }
 
     try {
