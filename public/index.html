@@ -45,7 +45,7 @@
 
         <h2>Expenses</h2>
         <ul>
-            <li v-for="expense in expenses" :key="expense.id">
+            <li v-for="expense in formattedExpenses" :key="expense.id">
                 {{ expense.name }}: ${{ expense.amount }}
                 <button type="button" class="btn btn-danger btn-sm" @click="deleteExpense(expense.id)">
                     Delete
@@ -55,6 +55,9 @@
                 </button>
             </li>
         </ul>
+
+        <h2>Total Expenses: ${{ formattedTotalExpenses }}</h2>
+
 
         <h2>Add Income</h2>
         <div class="mb-3 row">
@@ -73,7 +76,7 @@
 
         <h2>Incomes</h2>
         <ul>
-            <li v-for="income in incomes" :key="income.id">
+            <li v-for="income in formattedIncomes" :key="income.id">
                 {{ income.name }}: ${{ income.amount }}
                 <button type="button" class="btn btn-danger btn-sm" @click="deleteIncome(income.id)">
                     Delete
@@ -83,6 +86,9 @@
                 </button>
             </li>
         </ul>
+
+        <h2>Total Incomes: ${{ formattedTotalIncomes }}</h2>
+
     </div>
 
     <!-- Sign Up Modal -->
@@ -215,13 +221,45 @@
                 editIncomeName: '',
                 editIncomeAmount: 0,
                 editingIncome: null,
+                totalExpensesValue: 0,
+                totalIncomesValue: 0,
             };
+        },
+        computed: {
+            totalExpenses() {
+                return this.expenses.reduce((total, expense) => total + parseFloat(expense.amount), 0);
+            },
+            totalIncomes() {
+                return this.incomes.reduce((total, income) => total + income.amount, 0);
+            },
+            formattedExpenses() {
+                return this.expenses.map(expense => ({
+                    ...expense,
+                    amount: Number(expense.amount).toFixed(2),
+                }));
+            },
+            formattedTotalExpenses() {
+                return this.totalExpenses.toFixed(2);
+            },
+            formattedIncomes() {
+                return this.incomes.map(income => ({
+                    ...income,
+                    amount: Number(income.amount).toFixed(2),
+                }));
+            },
+            formattedTotalIncomes() {
+                return this.totalIncomes().toFixed(2);
+            },
         },
         mounted() {
             if (localStorage.getItem('sessionId')) {
                 this.sessionId = localStorage.getItem('sessionId');
                 this.loadExpenses();
                 this.loadIncomes();
+
+                // Calculate total expenses/incomes initially
+                this.totalExpensesValue = this.calculateTotalExpenses();
+                this.totalIncomesValue = this.calculateTotalIncomes();
             }
         },
         methods: {
@@ -229,6 +267,15 @@
                 // Retrieve the session token from localStorage
                 return localStorage.getItem('sessionId');
             },
+
+            calculateTotalExpenses() {
+                return this.expenses.reduce((total, expense) => total + parseFloat(expense.amount), 0);
+            },
+
+            calculateTotalIncomes() {
+                return this.incomes.reduce((total, income) => total + parseFloat(income.amount), 0);
+            },
+
             send(method, url, body = null) {
                 const headers = {
                     'Content-Type': 'application/json',
@@ -290,7 +337,6 @@
                     alert('Please enter an email and password to sign up');
                 }
             },
-
             signIn() {
                 if (this.signInEmail && this.signInPassword) {
                     const userData = {
@@ -330,7 +376,6 @@
                     alert('Please enter an email and password to sign in');
                 }
             },
-
             signOut() {
                 fetch('/sessions', {
                     method: 'DELETE',
@@ -348,7 +393,6 @@
                         console.error('Error:', error);
                     });
             },
-
             showModal(modalId, item) {
                 this.modalHandler = new bootstrap.Modal(document.getElementById(modalId));
                 if (item) {
@@ -368,7 +412,7 @@
                 if (this.expenseName && this.expenseAmount > 0) {
                     const expenseData = {
                         name: this.expenseName,
-                        amount: this.expenseAmount,
+                        amount: parseFloat(this.expenseAmount),
                     };
 
                     // Send a POST request to create the expense
@@ -418,7 +462,7 @@
                 if (this.incomeName && this.incomeAmount > 0) {
                     const incomeData = {
                         name: this.incomeName,
-                        amount: this.incomeAmount,
+                        amount: parseFloat(this.incomeAmount),
                     };
 
                     // Send a POST request to create the income
@@ -468,7 +512,7 @@
                 fetch('/expenses', {
                     method: 'GET',
                     headers: {
-                        'Authorization': `Bearer ${this.sessionId}`, // Include the session token
+                        'Authorization': `Bearer ${this.sessionId}`,
                         'Content-Type': 'application/json',
                     },
                 })
@@ -484,6 +528,8 @@
                         }
                     })
                     .then(data => {
+                        // Check the data received
+                        console.log(data);
                         this.expenses = data;
                     })
                     .catch(error => {
@@ -510,6 +556,8 @@
                         }
                     })
                     .then(data => {
+                        // Check the data received
+                        console.log(data);
                         this.incomes = data;
                     })
                     .catch(error => {
@@ -525,41 +573,44 @@
                     return;
                 }
 
+                // Update the expense locally first
+                const updatedExpenseIndex = this.expenses.findIndex(item => item.id === expense.id);
+                if (updatedExpenseIndex !== -1) {
+                    this.expenses[updatedExpenseIndex].name = updatedName;
+                    this.expenses[updatedExpenseIndex].amount = updatedAmount;
+                }
+
                 this.send('PUT', `/expenses/${expense.id}`, {
                     name: updatedName,
                     amount: updatedAmount,
                 })
                     .then(response => {
-                        if (response && response.status === 200) {
-                            return response.json();
-                        } else if (response && response.status === 400) {
-                            return response.json().then(errorData => {
-                                alert(errorData.error); // Display the validation error message
-                                throw new Error(errorData.error); // Throw the error message as an Error object
-                            });
-                        } else if (response && response.status === 401) {
-                            alert('Unauthorized: Please log in');
-                            throw new Error('Unauthorized');
+                        if (response && (response.status === 200 || response.status === 201)) {
+                            // The expense is updated on the server
+                            // Reset the form fields and close the modal
+                            this.editExpenseName = '';
+                            this.editExpenseAmount = 0;
+                            this.modalHandler.hide();
                         } else {
+                            // Handle other errors here
                             throw new Error('Failed to update expense');
                         }
                     })
-                    .then(data => {
-                        // Update the expense locally
-                        const index = this.expenses.findIndex(item => item.id === expense.id);
-                        if (index !== -1) {
-                            this.expenses[index].name = updatedName;
-                            this.expenses[index].amount = updatedAmount;
-                        }
-                        // Reset the form fields and close the modal
-                        this.editExpenseName = '';
-                        this.editExpenseAmount = 0;
-                        this.modalHandler.hide();
-                    })
                     .catch(error => {
                         console.error('Error:', error.message);
-                        // Handle other errors, e.g., display a user-friendly message
-                        alert(`Failed to update expense: ${error.message}`);
+
+                        if (error.response && error.response.status === 400) {
+                            // Validation error (status code 400)
+                            const errorData = error.response.data;
+                            alert(errorData.error);
+                        } else if (error.response && error.response.status === 401) {
+                            // Unauthorized error (status code 401)
+                            alert('Unauthorized: Please log in');
+                        } else {
+                            // Handle other unexpected errors here
+                            console.error('Failed to update expense:', error);
+                            alert('An error occurred while updating the expense. Please try again later.');
+                        }
                     });
             },
             updateIncome(income) {
@@ -571,13 +622,23 @@
                     return;
                 }
 
-                this.send('PUT', `/incomes/${income.id}`, {
+                this.send('PUT', `/expenses/${expense.id}`, {
                     name: updatedName,
                     amount: updatedAmount,
                 })
                     .then(response => {
                         if (response && response.status === 200) {
-                            return response.json();
+                            // Update the expense locally
+                            const updatedExpenseIndex = this.expenses.findIndex(item => item.id === expense.id);
+                            if (updatedExpenseIndex !== -1) {
+                                this.expenses[updatedExpenseIndex].name = updatedName;
+                                this.expenses[updatedExpenseIndex].amount = updatedAmount;
+                            }
+
+                            // Reset the form fields and close the modal
+                            this.editExpenseName = '';
+                            this.editExpenseAmount = 0;
+                            this.modalHandler.hide();
                         } else if (response && response.status === 400) {
                             return response.json().then(errorData => {
                                 alert(errorData.error); // Display the validation error message
@@ -587,25 +648,15 @@
                             alert('Unauthorized: Please log in');
                             throw new Error('Unauthorized');
                         } else {
-                            throw new Error('Failed to update income');
+                            // Handle other errors, e.g., display a user-friendly message
+                            console.error('Failed to update expense');
+                            alert('Failed to update the expense. Please try again later.');
                         }
-                    })
-                    .then(data => {
-                        // Update the income locally
-                        const index = this.incomes.findIndex(item => item.id === income.id);
-                        if (index !== -1) {
-                            this.incomes[index].name = updatedName;
-                            this.incomes[index].amount = updatedAmount;
-                        }
-                        // Reset the form fields and close the modal
-                        this.editIncomeName = '';
-                        this.editIncomeAmount = 0;
-                        this.modalHandler.hide();
                     })
                     .catch(error => {
                         console.error('Error:', error.message);
                         // Handle other errors, e.g., display a user-friendly message
-                        alert(`Failed to update income: ${error.message}`);
+                        alert(`Failed to update expense: ${error.message}`);
                     });
             },
             deleteExpense(expenseId) {
