@@ -230,7 +230,7 @@
                 return this.expenses.reduce((total, expense) => total + parseFloat(expense.amount), 0);
             },
             totalIncomes() {
-                return this.incomes.reduce((total, income) => total + income.amount, 0);
+                return this.incomes.reduce((total, income) => total + parseFloat(income.amount), 0);
             },
             formattedExpenses() {
                 return this.expenses.map(expense => ({
@@ -248,7 +248,7 @@
                 }));
             },
             formattedTotalIncomes() {
-                return this.totalIncomes().toFixed(2);
+                return this.totalIncomes.toFixed(2);
             },
         },
         mounted() {
@@ -585,7 +585,7 @@
                     amount: updatedAmount,
                 })
                     .then(response => {
-                        if (response && (response.status === 200 || response.status === 201)) {
+                        if (response) {
                             // The expense is updated on the server
                             // Reset the form fields and close the modal
                             this.editExpenseName = '';
@@ -622,41 +622,44 @@
                     return;
                 }
 
-                this.send('PUT', `/expenses/${expense.id}`, {
+                // Update the income locally first
+                const updatedIncomeIndex = this.incomes.findIndex(item => item.id === income.id);
+                if (updatedIncomeIndex !== -1) {
+                    this.incomes[updatedIncomeIndex].name = updatedName;
+                    this.incomes[updatedIncomeIndex].amount = updatedAmount;
+                }
+
+                this.send('PUT', `/incomes/${income.id}`, {
                     name: updatedName,
                     amount: updatedAmount,
                 })
                     .then(response => {
-                        if (response && response.status === 200) {
-                            // Update the expense locally
-                            const updatedExpenseIndex = this.expenses.findIndex(item => item.id === expense.id);
-                            if (updatedExpenseIndex !== -1) {
-                                this.expenses[updatedExpenseIndex].name = updatedName;
-                                this.expenses[updatedExpenseIndex].amount = updatedAmount;
-                            }
-
+                        if (response) {
+                            // The income is updated on the server
                             // Reset the form fields and close the modal
-                            this.editExpenseName = '';
-                            this.editExpenseAmount = 0;
+                            this.editIncomeName = '';
+                            this.editIncomeAmount = 0;
                             this.modalHandler.hide();
-                        } else if (response && response.status === 400) {
-                            return response.json().then(errorData => {
-                                alert(errorData.error); // Display the validation error message
-                                throw new Error(errorData.error); // Throw the error message as an Error object
-                            });
-                        } else if (response && response.status === 401) {
-                            alert('Unauthorized: Please log in');
-                            throw new Error('Unauthorized');
                         } else {
-                            // Handle other errors, e.g., display a user-friendly message
-                            console.error('Failed to update expense');
-                            alert('Failed to update the expense. Please try again later.');
+                            // Handle other errors here
+                            throw new Error('Failed to update income');
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error.message);
-                        // Handle other errors, e.g., display a user-friendly message
-                        alert(`Failed to update expense: ${error.message}`);
+
+                        if (error.response && error.response.status === 400) {
+                            // Validation error (status code 400)
+                            const errorData = error.response.data;
+                            alert(errorData.error);
+                        } else if (error.response && error.response.status === 401) {
+                            // Unauthorized error (status code 401)
+                            alert('Unauthorized: Please log in');
+                        } else {
+                            // Handle other unexpected errors here
+                            console.error('Failed to update income:', error);
+                            alert('An error occurred while updating the income. Please try again later.');
+                        }
                     });
             },
             deleteExpense(expenseId) {
