@@ -426,6 +426,8 @@
                             this.modalHandler.hide();
                             this.loadExpenses();
                             this.loadIncomes();
+                            this.loadSupportTickets();
+
                         })
                         .catch(error => {
                             console.error('Error:', error);
