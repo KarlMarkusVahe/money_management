@@ -333,6 +333,32 @@ app.get('/incomes', authorizeRequest, async (req, res) => {
         res.status(500).send('Error retrieving incomes');
     }
 });
+
+app.post('/support_tickets', authorizeRequest, async (req, res) => {
+    const { subject, description } = req.body;
+    const userId = req.account.id;
+
+    if (!subject || !description) {
+        return res.status(400).json({ error: 'Subject and description are required' });
+    }
+
+    try {
+        const [result] = await pool.query('INSERT INTO support_tickets (user_id, subject, description) VALUES (?, ?, ?)', [userId, subject, description]);
+        const ticket = {
+            id: result.insertId,
+            user_id: userId,
+            subject,
+            description,
+            status: 'Open',
+            created_at: new Date(),
+        };
+        res.status(201).json(ticket);
+    } catch (error) {
+        console.error('Error creating support ticket:', error);
+        res.status(500).json({ error: 'Error creating support ticket' });
+    }
+});
+
 app.listen(port, () => {
     console.log(`App running. Docs at http://localhost:${port}`);
 })

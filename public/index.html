@@ -108,6 +108,38 @@
 
     </div>
 
+    <!-- Support Ticket Form -->
+    <div v-if="sessionId">
+        <h2>Contact Support</h2>
+        <div class="mb-3 row">
+            <label for="supportSubject" class="col-sm-2 col-form-label">Subject</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="supportSubject" v-model="supportSubject">
+            </div>
+        </div>
+        <div class="mb-3 row">
+            <label for="supportDescription" class="col-sm-2 col-form-label">Description</label>
+            <div class="col-sm-10">
+                <textarea class="form-control" id="supportDescription" v-model="supportDescription"></textarea>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary" @click="submitSupportTicket">Submit Ticket</button>
+    </div>
+
+    <!-- Display Support Tickets -->
+    <div v-if="supportTickets.length > 0">
+        <h2>Support Tickets</h2>
+        <ul>
+            <li v-for="ticket in supportTickets" :key="ticket.id">
+                <strong>{{ ticket.subject }}</strong>
+                <p>Status: {{ ticket.status }}</p>
+                <p>Created: {{ ticket.created_at }}</p>
+                <!-- Add a button for users to view ticket details -->
+                <button type="button" class="btn btn-secondary btn-sm" @click="viewSupportTicket(ticket)">View Details</button>
+            </li>
+        </ul>
+    </div>
+
     <!-- Sign Up Modal -->
     <div class="modal fade" id="signUpModal" tabindex="-1" aria-labelledby="signUpModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -240,6 +272,9 @@
                 editingIncome: null,
                 totalExpensesValue: 0,
                 totalIncomesValue: 0,
+                supportSubject: '',
+                supportDescription: '',
+                supportTickets: [],
             };
         },
         computed: {
@@ -280,6 +315,8 @@
                 // Calculate total expenses/incomes initially
                 this.totalExpensesValue = this.calculateTotalExpenses();
                 this.totalIncomesValue = this.calculateTotalIncomes();
+
+                this.loadSupportTickets();
             }
         },
         methods: {
@@ -714,6 +751,37 @@
                         alert('Failed to delete the income. Please try again later.');
                     });
             },
+            submitSupportTicket() {
+                // Send a POST request to your server to create a support ticket
+                const ticketData = {
+                    subject: this.supportSubject,
+                    description: this.supportDescription,
+                };
+
+                // Use your API endpoint for creating support tickets
+                this.send('POST', '/support_tickets', ticketData)
+                    .then(response => {
+                        // Handle the response (e.g., clear form fields, update supportTickets array)
+                        this.supportSubject = '';
+                        this.supportDescription = '';
+                        this.supportTickets.push(response); // Add the new ticket to the list
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            },
+            /* loadSupportTickets() {
+                // Send a GET request to retrieve support tickets for the authenticated user
+                // Use your API endpoint for retrieving support tickets
+                this.send('GET', '/support_tickets')
+                    .then(response => {
+                        // Update the supportTickets array with the retrieved data
+                        this.supportTickets = response;
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            },*/
         },
     }).mount('#app');
 </script>
