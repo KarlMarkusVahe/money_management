@@ -334,6 +334,7 @@ app.get('/incomes', authorizeRequest, async (req, res) => {
     }
 });
 
+// Route to create a new support ticket
 app.post('/support_tickets', authorizeRequest, async (req, res) => {
     const { subject, description } = req.body;
     const userId = req.account.id;
@@ -356,6 +357,20 @@ app.post('/support_tickets', authorizeRequest, async (req, res) => {
     } catch (error) {
         console.error('Error creating support ticket:', error);
         res.status(500).json({ error: 'Error creating support ticket' });
+    }
+});
+
+// Route to retrieve support tickets for the authenticated user
+app.get('/support_tickets', authorizeRequest, async (req, res) => {
+    const userId = req.account.id; // Get the user's ID from the authenticated session
+
+    try {
+        // Fetch support tickets associated with the user
+        const [rows] = await pool.query('SELECT * FROM support_tickets WHERE user_id = ?', [userId]);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error retrieving support tickets:', error);
+        res.status(500).json({ error: 'Error retrieving support tickets' });
     }
 });
 

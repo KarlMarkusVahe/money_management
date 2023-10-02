@@ -316,6 +316,7 @@
                 this.totalExpensesValue = this.calculateTotalExpenses();
                 this.totalIncomesValue = this.calculateTotalIncomes();
 
+                // Load support tickets when the component is initially loaded
                 this.loadSupportTickets();
             }
         },
@@ -434,6 +435,10 @@
                 }
             },
             signOut() {
+                // Clear the supportTickets array on logout
+                this.supportTickets = [];
+
+                // Rest of your signOut logic
                 fetch('/sessions', {
                     method: 'DELETE',
                     headers: {
@@ -770,7 +775,7 @@
                         console.error('Error:', error);
                     });
             },
-            /* loadSupportTickets() {
+            loadSupportTickets() {
                 // Send a GET request to retrieve support tickets for the authenticated user
                 // Use your API endpoint for retrieving support tickets
                 this.send('GET', '/support_tickets')
@@ -781,7 +786,7 @@
                     .catch(error => {
                         console.error('Error:', error);
                     });
-            },*/
+            },
         },
     }).mount('#app');
 </script>
