@@ -140,6 +140,27 @@
         </ul>
     </div>
 
+    <!-- Support Ticket Details Modal -->
+    <div class="modal fade" id="supportTicketDetailsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Support Ticket Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h3>{{ selectedTicket ? selectedTicket.subject : '' }}</h3>
+                    <p>Status: {{ selectedTicket ? selectedTicket.status : '' }}</p>
+                    <p>Created: {{ selectedTicket ? selectedTicket.created_at : '' }}</p>
+                    <p>Description: {{ selectedTicket ? selectedTicket.description : '' }}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Sign Up Modal -->
     <div class="modal fade" id="signUpModal" tabindex="-1" aria-labelledby="signUpModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -275,6 +296,7 @@
                 supportSubject: '',
                 supportDescription: '',
                 supportTickets: [],
+                selectedTicket: null,
             };
         },
         computed: {
@@ -789,6 +811,14 @@
                         console.error('Error:', error);
                     });
             },
+            viewSupportTicket(ticket) {
+                // Set a property to store the selected ticket for display
+                this.selectedTicket = ticket;
+
+                // Show a modal or a dedicated section to display the ticket details
+                this.showModal('supportTicketDetailsModal'); // You can define a modal for displaying ticket details
+            },
+
         },
     }).mount('#app');
 </script>

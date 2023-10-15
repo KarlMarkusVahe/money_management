@@ -1,80 +1,344 @@
-openapi: 3.0.2
+openapi: 3.0.0
 info:
-  title: ITA21
+  title: Express API
   version: 1.0.0
-  description: Demonstration API
+  description: API documentation for the Express application
+servers:
+  - url: http://localhost:3000
 paths:
-  /sessions:
-    summary: Path used to manage the list of sessions.
-    description: >-
-      The REST endpoint/path used to list and create zero or more `Session` entities.  This path
-      contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+  /accounts:
     post:
+      summary: Create a new account
       requestBody:
-        description: A new `Session` to be created.
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Session'
-        required: true
-      tags:
-        - /sessions
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
       responses:
         '201':
+          description: Account created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Session'
-              examples:
-                Session:
-                  value:
-                    sessionId: 841959fa-b0b9-4185-8673-1531c59cd6c9
-          description: Successful sign in.
-      operationId: createSession
-      summary: Create a Session
-      description: Creates a new instance of a `Session`.
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  email:
+                    type: string
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+  /sessions:
+    post:
+      summary: Create a new session (login)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  accountId:
+                    type: integer
+        '400':
+          description: Invalid request
+        '401':
+          description: Invalid password or account not found
+        '500':
+          description: Server error
     delete:
-      tags:
-        - /sessions
+      summary: Delete a session (logout)
       responses:
         '204':
-          description: Successful signout
-      security:
-        -
-          Bearer: []
-      summary: Destroy a session
-      description: 'Destorys a `Session`, effectively signing out.'
-components:
-  schemas:
-    Credentials:
-      title: Root Type for Credentials
-      description: ''
-      type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: admin@example.com
-        password: '1234'
-    Session:
-      title: Root Type for Session
-      description: ''
-      type: object
-      properties:
-        email:
-          type: string
-        password:
-          type: string
-      example:
-        email: admin@admin.com
-        password: admin
-  securitySchemes:
-    Bearer:
-      scheme: bearer
-      type: http
-tags:
-  -
-    name: /sessions
-    description: Operations with sessions
+          description: Session deleted
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+  /expenses:
+    post:
+      summary: Create a new expense
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        '201':
+          description: Expense created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  amount:
+                    type: number
+                  userId:
+                    type: integer
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+    get:
+      summary: Retrieve expenses
+      responses:
+        '200':
+          description: Expenses retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    amount:
+                      type: number
+                    userId:
+                      type: integer
+        '500':
+          description: Server error
+  /incomes:
+    post:
+      summary: Create a new income
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        '201':
+          description: Income created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  amount:
+                    type: number
+                  userId:
+                    type: integer
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+    get:
+      summary: Retrieve incomes
+      responses:
+        '200':
+          description: Incomes retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    amount:
+                      type: number
+                    userId:
+                      type: integer
+        '500':
+          description: Server error
+  /expenses/{id}:
+    put:
+      summary: Update an expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Expense updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  amount:
+                    type: number
+        '400':
+          description: Invalid request
+        '404':
+          description: Expense not found
+        '500':
+          description: Server error
+    delete:
+      summary: Delete an expense
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Expense deleted
+        '404':
+          description: Expense not found
+        '500':
+          description: Server error
+  /incomes/{id}:
+    put:
+      summary: Update an income
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: Income updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  amount:
+                    type: number
+        '400':
+          description: Invalid request
+        '404':
+          description: Income not found
+        '500':
+          description: Server error
+    delete:
+      summary: Delete an income
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Income deleted
+        '404':
+          description: Income not found
+        '500':
+          description: Server error
+  /support_tickets:
+    post:
+      summary: Create a new support ticket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                subject:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Support ticket created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  user_id:
+                    type: integer
+                  subject:
+                    type: string
+                  description:
+                    type: string
+                  status:
+                    type: string
+                  created_at:
+                    type: string
+        '400':
+          description: Invalid request
+        '500':
+          description: Server error
+    get:
+      summary: Retrieve support tickets for the authenticated user
+      responses:
+        '200':
+          description: Support tickets retrieved
