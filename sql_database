@@ -35,3 +35,90 @@ CREATE TABLE support_tickets (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES accounts(id)
 );
+
+-- Table to store expense logs
+CREATE TABLE expense_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_type ENUM('Added', 'Updated', 'Deleted') NOT NULL,
+    expense_id INT,
+    user_id INT,
+    event_time TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES accounts(id)
+);
+
+-- Table to store income logs
+CREATE TABLE income_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    event_type ENUM('Added', 'Updated', 'Deleted') NOT NULL,
+    income_id INT,
+    user_id INT,
+    event_time TIMESTAMP NOT NULL,
+    FOREIGN KEY (income_id) REFERENCES incomes(id),
+    FOREIGN KEY (user_id) REFERENCES accounts(id)
+);
+
+-- Trigger to log when a new expense is added
+DELIMITER //
+CREATE TRIGGER expense_added_trigger
+AFTER INSERT ON expenses
+FOR EACH ROW
+BEGIN
+    INSERT INTO expense_log (event_type, expense_id, user_id, event_time)
+    VALUES ('Added', NEW.id, NEW.userId, NOW());
+END;
+//
+
+-- Trigger to log when an expense is updated
+DELIMITER //
+CREATE TRIGGER expense_updated_trigger
+AFTER UPDATE ON expenses
+FOR EACH ROW
+BEGIN
+    INSERT INTO expense_log (event_type, expense_id, user_id, event_time)
+    VALUES ('Updated', NEW.id, NEW.userId, NOW());
+END;
+//
+
+-- Trigger to log when an expense is deleted
+DELIMITER //
+CREATE TRIGGER expense_deleted_trigger
+AFTER DELETE ON expenses
+FOR EACH ROW
+BEGIN
+    INSERT INTO expense_log (event_type, expense_id, user_id, event_time)
+    VALUES ('Deleted', OLD.id, OLD.userId, NOW());
+END;
+//
+
+-- Trigger to log when a new income is added
+DELIMITER //
+CREATE TRIGGER income_added_trigger
+AFTER INSERT ON incomes
+FOR EACH ROW
+BEGIN
+    INSERT INTO income_log (event_type, income_id, user_id, event_time)
+    VALUES ('Added', NEW.id, NEW.userId, NOW());
+END;
+//
+
+-- Trigger to log when an income is updated
+DELIMITER //
+CREATE TRIGGER income_updated_trigger
+AFTER UPDATE ON incomes
+FOR EACH ROW
+BEGIN
+    INSERT INTO income_log (event_type, income_id, user_id, event_time)
+    VALUES ('Updated', NEW.id, NEW.userId, NOW());
+END;
+//
+
+-- Trigger to log when an income is deleted
+DELIMITER //
+CREATE TRIGGER income_deleted_trigger
+AFTER DELETE ON incomes
+FOR EACH ROW
+BEGIN
+    INSERT INTO income_log (event_type, income_id, user_id, event_time)
+    VALUES ('Deleted', OLD.id, OLD.userId, NOW());
+END;
+//
