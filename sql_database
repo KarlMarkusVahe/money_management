@@ -53,7 +53,6 @@ CREATE TABLE income_log (
     income_id INT,
     user_id INT,
     event_time TIMESTAMP NOT NULL,
-    FOREIGN KEY (income_id) REFERENCES incomes(id),
     FOREIGN KEY (user_id) REFERENCES accounts(id)
 );
 
