@@ -6,6 +6,7 @@ const swaggerDocument = yamlJs.load('./swagger.yaml');
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require("bcrypt");
 const mysql = require('mysql2/promise');
+const emailValidator = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -40,6 +41,10 @@ app.post('/accounts', async (req, res) => {
 
     if (!email || !password) {
         return res.status(400).send('Email and password are required');
+    }
+
+    if (!emailValidator.test(email)) {
+        return res.status(400).send('Invalid email format');
     }
 
     try {
