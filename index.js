@@ -43,6 +43,13 @@ app.post('/accounts', async (req, res) => {
     }
 
     try {
+        // Check if an account with the same email already exists
+        const [existingAccounts] = await pool.query('SELECT * FROM accounts WHERE email = ?', [email]);
+
+        if (existingAccounts.length > 0) {
+            return res.status(409).send('Account with this email already exists');
+        }
+
         const hash = await bcrypt.hash(password, 10);
         const [result] = await pool.query('INSERT INTO accounts (email, password) VALUES (?, ?)', [email, hash]);
         const account = {

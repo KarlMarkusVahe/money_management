@@ -34,6 +34,8 @@ paths:
                     type: string
         '400':
           description: Invalid request
+        '409':
+          description: Account with this email already exists
         '500':
           description: Server error
   /sessions:

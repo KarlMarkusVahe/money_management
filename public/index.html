@@ -402,6 +402,9 @@
                             if (response.status === 201) {
                                 // User created successfully
                                 this.modalHandler.hide();
+                            } else if (response.status === 400) {
+                                // Handle other errors, such as missing email or password
+                                alert('Please enter a valid email and password');
                             } else if (response.status === 409) {
                                 // Email already exists
                                 alert('This email is already registered');
